@@ -57,7 +57,7 @@ var wg sync.WaitGroup
 
 func main() {
 	wg.Add(1)
-	go Crawl("https://golang.org/", 4, fetcher)
+	Crawl("https://golang.org/", 4, fetcher)
 	wg.Wait()
 }
 
