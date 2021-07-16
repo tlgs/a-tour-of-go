@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 )
 
 type ErrNegativeSqrt float64
@@ -16,15 +17,9 @@ func Sqrt(x float64) (float64, error) {
 	}
 
 	z := 1.0
-	for epsilon := 1.0; epsilon > 1e-10; {
-		diff := (z*z - x) / (2 * z)
-		z -= diff
-
-		if diff > 0 {
-			epsilon = diff
-		} else {
-			epsilon = -diff
-		}
+	for epsilon := 1.0; math.Abs(epsilon) > 1e-10; {
+		epsilon = (z*z - x) / (2 * z)
+		z -= epsilon
 	}
 
 	return z, nil
