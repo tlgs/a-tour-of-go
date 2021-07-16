@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"golang.org/x/tour/pic"
 )
@@ -21,8 +22,11 @@ func (i Image) Bounds() image.Rectangle {
 }
 
 func (i Image) At(x, y int) color.Color {
-	v := uint8((x + y) / 2)
-	return color.RGBA{255, v, 64, 255}
+	dx := float64(x - i.w/2)
+	dy := float64(y - i.h/2)
+
+	v := uint8(math.Sqrt(dx*dx+dy*dy)) * 4
+	return color.RGBA{v, v, v, 255}
 }
 
 func main() {
