@@ -34,7 +34,7 @@ func (c *Cache) Exists(url string) bool {
 func Crawl(url string, depth int, fetcher Fetcher, outer chan string) {
 	defer close(outer)
 
-	if depth <= 0 {
+	if depth <= 0 || cache.Exists(url) {
 		return
 	}
 
@@ -46,15 +46,8 @@ func Crawl(url string, depth int, fetcher Fetcher, outer chan string) {
 	}
 	outer <- fmt.Sprintf("found: %s %q", url, body)
 
-	filtered := []string{}
-	for _, u := range urls {
-		if !cache.Exists(u) {
-			filtered = append(filtered, u)
-		}
-	}
-
-	inner := make([]chan string, len(filtered))
-	for i, u := range filtered {
+	inner := make([]chan string, len(urls))
+	for i, u := range urls {
 		inner[i] = make(chan string)
 		go Crawl(u, depth-1, fetcher, inner[i])
 	}
