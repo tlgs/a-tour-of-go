@@ -11,54 +11,70 @@ type Fetcher interface {
 	Fetch(url string) (body string, urls []string, err error)
 }
 
-type SafeMap struct {
+type Cache struct {
 	mux sync.Mutex
-	v   map[string]bool
+	m   map[string]bool
 }
 
-func (s SafeMap) Add(url string, status bool) {
-	s.mux.Lock()
-	s.v[url] = status
-	s.mux.Unlock()
+func (c *Cache) Add(url string) {
+	c.mux.Lock()
+	c.m[url] = true
+	c.mux.Unlock()
 }
 
-func (s SafeMap) Exists(url string) bool {
-	s.mux.Lock()
-	_, ok := s.v[url]
-	s.mux.Unlock()
+func (c *Cache) Exists(url string) bool {
+	c.mux.Lock()
+	_, ok := c.m[url]
+	c.mux.Unlock()
 	return ok
 }
 
 // Crawl uses fetcher to recursively crawl
 // pages starting with url, to a maximum of depth.
-func Crawl(url string, depth int, fetcher Fetcher) {
-	defer wg.Done()
+func Crawl(url string, depth int, fetcher Fetcher, outer chan string) {
+	defer close(outer)
 
-	if depth <= 0 || sm.Exists(url) {
+	if depth <= 0 {
 		return
 	}
 
 	body, urls, err := fetcher.Fetch(url)
-	sm.Add(url, err != nil)
+	cache.Add(url)
 	if err != nil {
-		fmt.Println(err)
+		outer <- err.Error()
 		return
 	}
-	fmt.Printf("found: %v %q\n", url, body)
+	outer <- fmt.Sprintf("found: %s %q", url, body)
 
+	filtered := []string{}
 	for _, u := range urls {
-		wg.Add(1)
-		go Crawl(u, depth-1, fetcher)
+		if !cache.Exists(u) {
+			filtered = append(filtered, u)
+		}
+	}
+
+	inner := make([]chan string, len(filtered))
+	for i, u := range filtered {
+		inner[i] = make(chan string)
+		go Crawl(u, depth-1, fetcher, inner[i])
+	}
+
+	// drain children goroutines
+	for i := range inner {
+		for v := range inner[i] {
+			outer <- v
+		}
 	}
 }
 
-var sm = SafeMap{v: make(map[string]bool)}
-var wg sync.WaitGroup
+var cache = Cache{m: make(map[string]bool)}
 
 func main() {
-	wg.Add(1)
-	Crawl("https://golang.org/", 4, fetcher)
-	wg.Wait()
+	ch := make(chan string)
+	go Crawl("https://golang.org/", 4, fetcher, ch)
+	for v := range ch {
+		fmt.Println(v)
+	}
 }
 
 // fakeFetcher is Fetcher that returns canned results.
