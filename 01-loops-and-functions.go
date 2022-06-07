@@ -7,9 +7,8 @@ import (
 
 func Sqrt(x float64) float64 {
 	z := 1.0
-	for epsilon := 1.0; math.Abs(epsilon) > 1e-10; {
-		epsilon = (z*z - x) / (2 * z)
-		z -= epsilon
+	for e := 1.0; math.Abs(e) > 1e-9; z -= e {
+		e = (z*z - x) / (2 * z)
 	}
 
 	return z

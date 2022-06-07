@@ -11,10 +11,10 @@ type rot13Reader struct {
 }
 
 func (rot rot13Reader) Read(b []byte) (int, error) {
-	c := make([]byte, 8)
-	n, err := rot.r.Read(c)
+	buf := make([]byte, 8)
+	n, err := rot.r.Read(buf)
 
-	for i, v := range c {
+	for i, v := range buf {
 		switch {
 		case 'A' <= v && v <= 'Z':
 			b[i] = 'A' + (v-'A'+13)%26
